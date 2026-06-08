@@ -144,7 +144,7 @@ const RegisterForm: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md space-y-6">
+    <div className="w-full max-w-[400px] space-y-6">
       <div className="text-center lg:text-left">
         <h1 className="text-[30px] font-bold text-[#16182C]">Crea tu cuenta</h1>
         <p className="mt-2 text-[16px] font-normal text-[#8A8CA8]">
@@ -157,7 +157,7 @@ const RegisterForm: React.FC = () => {
           id="fullName"
           label="Nombre completo"
           type="text"
-          placeholder="Diego Martínez"
+          placeholder="Ej: Diego Martínez"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           onBlur={handleFullNameBlur}
@@ -170,7 +170,7 @@ const RegisterForm: React.FC = () => {
           id="email"
           label="Correo electrónico"
           type="email"
-          placeholder="ejemplo@correo.com"
+          placeholder="tucorreo@ejemplo.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onBlur={handleEmailBlur}

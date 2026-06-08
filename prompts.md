@@ -130,14 +130,16 @@ Restricciones:
 - Al terminar, ejecutar npm run test -- --run y reportar resultados.
 ```
 
-### Revisión
+### Revisiones
+
+#### Revisión 1
 ```
-Revisa visualmente localhost:3000 y localhost:3000/login contra Figma en desktop y mobile.
+Revisa la implementación general. el código contra las specs. Corre los tests y provee un reporte de estado.
 ```
 
-### Iteraciones
+#### Iteración 1
 ```
-Corregí los hallazgos de revisión de la implementación de Registro.
+Corrige los hallazgos de revisión de la implementación de Registro.
 
 Objetivos:
 1. Hacer pasar npm run lint y npm run build sin agregar librerías de UI ni cambiar el alcance funcional.
@@ -154,5 +156,15 @@ npm run test -- --run
 npm run lint
 npm run build
 
+```
+
+#### Revisión 2
+```
+Revisa visualmente localhost:3000 y localhost:3000/login contra Figma en desktop y mobile.
+```
+
+#### Iteración 2
+```
+Corrige todas las discrepancias cosméticas encontradas.
 ```
 
