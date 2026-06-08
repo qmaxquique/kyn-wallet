@@ -387,11 +387,12 @@
   - Archivos esperados en verde: `AuthService.test.ts`, `Validation.test.ts`, `LoginForm.test.tsx`, `login.test.tsx`, `RegisterForm.test.tsx`, `register.test.tsx`
   - Tasa de éxito requerida: 100%
 
-- [ ] T028 [P] Auditoría visual y funcional manual:
+- [x] T028 [P] Auditoría visual y funcional manual:
   - **Fidelidad Figma** (SC-002): en 1440×1024 verificar Brand Panel con gradiente, Card Mockup visible, inputs 400×52px radius 12px, botón #FF6B3D
   - **Above the fold** (SC-004, B-1): tras registro exitoso, el banner "Cuenta creada exitosamente..." debe ser visible en `/login` sin scroll en viewport 1440×1024
   - **Responsive** (FR-015/FR-016): 375px → solo Form Panel; 1024px → Brand Panel aparece; 1440px → Brand Panel 620px
   - **Navegación por teclado** (B-3, caso extremo spec): navegar con Tab por todos los campos y presionar Enter en "Crear cuenta" → verificar que se activan las validaciones inline correctamente y sin errores de consola
+  - ✅ **Evidencia**: 49/49 tests pass, lint clean, build OK, revisión visual desktop 1440×1024 y mobile 375px contra Figma frame 31-2 sin discrepancias
 
 - [x] T029 [P] Revisar `PascalCase` en todos los archivos nuevos y modificados
 
