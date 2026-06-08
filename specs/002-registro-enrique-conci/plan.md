@@ -36,7 +36,7 @@ Implementar la pantalla de Registro de Usuarios en la ruta `/`, migrando el Logi
 
 | Archivo | Tipo de cambio | Impacto en tests existentes |
 |---|---|---|
-| `lib/types/Auth.ts` | Añadir interfaces nuevas; `AuthCredentials` y `User` sin cambios | Ninguno — solo adiciones |
+| `lib/types/Auth.ts` | Añadir interfaces nuevas; `AuthCredentials` sin cambios; `User` añade `FullName?: string` (opcional) | Ninguno — `FullName` es opcional, no rompe objetos existentes |
 | `lib/constants/DesignTokens.ts` | Añadir 3 tokens nuevos al objeto `Colors`; estructura existente intacta | Ninguno |
 | `lib/utils/Validation.ts` | Añadir 3 funciones nuevas; `validateEmail` y `validatePassword` sin cambios | Ninguno — `Validation.test.ts` sigue verde |
 | `lib/services/AuthService.ts` | Añadir `register()` e `isEmailTaken()` a `IAuthService` y a `AuthService`; `login()` e `isAuthenticated()` sin cambios | Ninguno — `AuthService.test.ts` sigue verde |
@@ -159,11 +159,12 @@ interface ValidationError {
   Message: string
 }
 
-// User se extiende añadiendo FullName como campo requerido
+// User se extiende añadiendo FullName como campo OPCIONAL para preservar
+// compatibilidad con el objeto hardcodeado en MOCK_USERS
 interface User {
-  FullName: string    // NUEVO
+  FullName?: string   // NUEVO — opcional
   Email: string
-  Password: string    // pasa a PasswordHash al almacenar
+  Password: string    // pasa a PasswordHash al almacenar vía register()
 }
 ```
 

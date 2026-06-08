@@ -66,14 +66,12 @@
 
 - [ ] T007 [HU1] Añadir `describe('register')` en `lib/services/AuthService.test.ts`:
 
-  > **B-5 aislamiento de estado**: el describe debe incluir `beforeEach` que restaure `MOCK_USERS` al estado inicial para evitar contaminación entre tests que mutan el array.
+  > **B-5 aislamiento de estado**: el describe debe incluir `beforeEach` que llame a `resetMockUsers()` exportado desde `AuthService.ts`. Esta función reemplaza el contenido de `MOCK_USERS` con el array inicial `[{ Email: 'tucorreo@ejemplo.com', Password: 'password123' }]`. No usar `vi.resetModules()` — es costoso y cambia el modelo de aislamiento de módulos en Vitest.
 
   ```
   describe('register', () => {
     beforeEach(() => {
-      // Restaurar MOCK_USERS al estado inicial antes de cada test
-      // Implementación: exportar resetMockUsers() desde AuthService.ts o
-      // usar vi.resetModules() + re-import en cada test
+      resetMockUsers() // importar desde '../lib/services/AuthService'
     })
 
     it('registro exitoso retorna { Success: true }')
@@ -324,12 +322,9 @@
 
 ### Implementación HU4
 
-- [ ] T023 [HU4] Corregir `components/SocialLogins.tsx`: cambiar el texto del alert de `` `${provider} estará disponible próximamente.` `` a `'Próximamente'`:
-  ```
-  const handleComingSoon = () => {
-    alert('Próximamente');
-  };
-  ```
+- [ ] T023 [HU4] Corregir `components/SocialLogins.tsx`: cambiar el texto del alert y actualizar la firma + llamadores:
+  1. Cambiar `const handleComingSoon = (provider: string) => { alert(\`${provider} estará disponible próximamente.\`) }` por `const handleComingSoon = () => { alert('Próximamente') }`
+  2. Actualizar los `onClick` del JSX de `onClick={() => handleComingSoon('Google')}` / `onClick={() => handleComingSoon('Apple')}` a `onClick={handleComingSoon}` en ambos botones
 
 - [ ] T024 [HU4] Completar `components/RegisterForm.tsx`:
   - Añadir `import SocialLogins from './SocialLogins'` y `import Link from 'next/link'`
@@ -358,8 +353,14 @@
 
 ### Test ⚠️ PRIMERO
 
-- [ ] T025 [HU1] Añadir en `app/login.test.tsx`:
+- [ ] T025 [HU1] Añadir en `app/login.test.tsx` — **prerequisito: T004 debe estar completado** (requiere que `app/login/page.tsx` exista):
 
+  Añadir import al inicio del archivo:
+  ```
+  import LoginPage from '../app/login/page'
+  ```
+
+  Añadir tests dentro de un nuevo `describe('LoginPage banner de éxito', ...)` al final del archivo:
   ```
   it('muestra banner de éxito cuando searchParams registered=true')
     → vi.mock('next/navigation', () => ({
