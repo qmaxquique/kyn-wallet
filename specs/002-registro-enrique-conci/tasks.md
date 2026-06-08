@@ -22,7 +22,7 @@
 **Objetivo**: Tipos, interfaces y tokens listos antes de cualquier test o componente. Ninguna tarea aquí rompe tests existentes.
 
 - [ ] T001 Extender `lib/types/Auth.ts`:
-  - Añadir `FullName: string` a la interfaz `User` existente
+  - Añadir `FullName?: string` (**opcional**) a la interfaz `User` existente — la opcionalidad preserva compatibilidad con el objeto hardcodeado `{ Email, Password }` en `MOCK_USERS`; los usuarios registrados vía `register()` sí incluirán el campo
   - Añadir interfaz `RegisterCredentials { FullName: string; Email: string; Password: string; ConfirmPassword: string; AcceptsTerms: boolean }`
   - Añadir interfaz `RegisterResult { Success: boolean; ErrorMessage?: string }`
   - Añadir interfaz `ValidationError { Field: string; Message: string }`
@@ -66,8 +66,16 @@
 
 - [ ] T007 [HU1] Añadir `describe('register')` en `lib/services/AuthService.test.ts`:
 
+  > **B-5 aislamiento de estado**: el describe debe incluir `beforeEach` que restaure `MOCK_USERS` al estado inicial para evitar contaminación entre tests que mutan el array.
+
   ```
   describe('register', () => {
+    beforeEach(() => {
+      // Restaurar MOCK_USERS al estado inicial antes de cada test
+      // Implementación: exportar resetMockUsers() desde AuthService.ts o
+      // usar vi.resetModules() + re-import en cada test
+    })
+
     it('registro exitoso retorna { Success: true }')
       → register({ FullName:'Diego', Email:'nuevo@ejemplo.com', Password:'Abc12345',
                    ConfirmPassword:'Abc12345', AcceptsTerms:true })
@@ -130,6 +138,8 @@
   - Reemplazar `<LoginForm />` por `<RegisterForm />`
   - El layout con `BrandPanel` permanece idéntico
 
+> **Nota B-4**: T012 fue absorbido en T010 (la redirección post-registro es parte del `handleSubmit` de `RegisterForm`). La numeración salta intencionalmente de T011 a T013.
+
 ---
 
 ## Fase 4 — HU2: Validaciones Inline
@@ -177,24 +187,41 @@
   }))
   ```
 
-  Tests de campos obligatorios:
+  Tests de campos obligatorios y validación en dos pasos (C-1 + B-2):
   ```
   it('nombre vacío: blur → "Este campo es obligatorio"')
     → render(<RegisterForm />)
     → fireEvent.blur(getByLabelText(/nombre completo/i))
     → expect(getByText('Este campo es obligatorio')).toBeInTheDocument()
 
-  it('email inválido: blur → "Ingresa un correo electrónico válido"')
+  it('nombre con solo espacios: blur → "Este campo es obligatorio"')
+    → fireEvent.change(nameInput, { target: { value: '   ' } })
+    → fireEvent.blur(nameInput)
+    → expect(getByText('Este campo es obligatorio')).toBeInTheDocument()
+
+  it('email vacío: blur → "Este campo es obligatorio"')
+    → fireEvent.blur(emailInput)  // sin cambio previo (vacío)
+    → expect(getByText('Este campo es obligatorio')).toBeInTheDocument()
+
+  it('email inválido (no vacío): blur → "Ingresa un correo electrónico válido"')
     → fireEvent.change(emailInput, { target: { value: 'nodomain' } })
     → fireEvent.blur(emailInput)
     → expect(getByText('Ingresa un correo electrónico válido')).toBeInTheDocument()
 
-  it('password < 8 chars: blur → "La contraseña debe tener al menos 8 caracteres"')
+  it('password vacío: blur → "Este campo es obligatorio"')
+    → fireEvent.blur(passInput)  // sin cambio previo (vacío)
+    → expect(getByText('Este campo es obligatorio')).toBeInTheDocument()
+
+  it('password < 8 chars (no vacío): blur → "La contraseña debe tener al menos 8 caracteres"')
     → fireEvent.change(passInput, { target: { value: 'short' } })
     → fireEvent.blur(passInput)
     → expect(getByText('La contraseña debe tener al menos 8 caracteres')).toBeInTheDocument()
 
-  it('confirmación distinta: blur → "Las contraseñas no coinciden"')
+  it('confirmPassword vacío: blur → "Este campo es obligatorio"')
+    → fireEvent.blur(confirmInput)  // sin cambio previo (vacío)
+    → expect(getByText('Este campo es obligatorio')).toBeInTheDocument()
+
+  it('confirmación distinta (no vacía): blur → "Las contraseñas no coinciden"')
     → password = 'Abc12345', confirmPassword = 'diferente'
     → fireEvent.blur(confirmInput)
     → expect(getByText('Las contraseñas no coinciden')).toBeInTheDocument()
@@ -228,17 +255,19 @@
   export const validateTerms = (accepted: boolean): boolean => accepted === true;
   ```
 
-- [ ] T016 [HU2] Actualizar `components/RegisterForm.tsx`: añadir `onBlur` a cada `<Input>`:
+- [ ] T016 [HU2] Actualizar `components/RegisterForm.tsx`: añadir `onBlur` a cada `<Input>` con **validación en dos pasos** (vacío primero, luego formato/longitud) para cumplir FR-012:
   - `fullName` onBlur → `validateFullName(fullName)` → si false: `setFullNameError('Este campo es obligatorio')`
-  - `email` onBlur → `validateEmail(email)` → si false: `setEmailError('Ingresa un correo electrónico válido')`
-  - `password` onBlur → `validatePassword(password)` → si false: `setPasswordError('La contraseña debe tener al menos 8 caracteres')`
-  - `confirmPassword` onBlur → `validateConfirmPassword(password, confirmPassword)` → si false: `setConfirmPasswordError('Las contraseñas no coinciden')`
+  - `email` onBlur → si `!validateNotEmpty(email)`: `setEmailError('Este campo es obligatorio')`, else si `!validateEmail(email)`: `setEmailError('Ingresa un correo electrónico válido')`
+  - `password` onBlur → si `!validateNotEmpty(password)`: `setPasswordError('Este campo es obligatorio')`, else si `!validatePassword(password)`: `setPasswordError('La contraseña debe tener al menos 8 caracteres')`
+  - `confirmPassword` onBlur → si `!validateNotEmpty(confirmPassword)`: `setConfirmPasswordError('Este campo es obligatorio')`, else si `!validateConfirmPassword(password, confirmPassword)`: `setConfirmPasswordError('Las contraseñas no coinciden')`
 
-- [ ] T017 [HU2] Actualizar `handleSubmit` en `components/RegisterForm.tsx`:
-  - Ejecutar todas las validaciones en orden antes de llamar a `register()`
+- [ ] T017 [HU2] Actualizar `handleSubmit` en `components/RegisterForm.tsx` con **validación en dos pasos por campo** para cumplir FR-012 (campos vacíos → "Este campo es obligatorio") y FR-009/010/011 (formato/longitud/coincidencia):
   - Si `!validateFullName(fullName)` → `setFullNameError('Este campo es obligatorio'); return`
+  - Si `!validateNotEmpty(email)` → `setEmailError('Este campo es obligatorio'); return`
   - Si `!validateEmail(email)` → `setEmailError('Ingresa un correo electrónico válido'); return`
+  - Si `!validateNotEmpty(password)` → `setPasswordError('Este campo es obligatorio'); return`
   - Si `!validatePassword(password)` → `setPasswordError('La contraseña debe tener al menos 8 caracteres'); return`
+  - Si `!validateNotEmpty(confirmPassword)` → `setConfirmPasswordError('Este campo es obligatorio'); return`
   - Si `!validateConfirmPassword(password, confirmPassword)` → `setConfirmPasswordError('Las contraseñas no coinciden'); return`
   - Si `!validateTerms(acceptsTerms)` → `setTermsError('Debes aceptar los términos y condiciones'); return`
   - Solo si todas pasan → llamar `AuthService.register()`
@@ -357,10 +386,11 @@
   - Archivos esperados en verde: `AuthService.test.ts`, `Validation.test.ts`, `LoginForm.test.tsx`, `login.test.tsx`, `RegisterForm.test.tsx`, `register.test.tsx`
   - Tasa de éxito requerida: 100%
 
-- [ ] T028 [P] Auditoría visual contra Figma frame `31:2` en 3 viewports:
-  - **375px (mobile)**: solo Form Panel visible; Brand Panel ausente del layout
-  - **1024px (breakpoint)**: Brand Panel aparece; Form Panel al 50%
-  - **1440px (desktop referencia)**: Brand Panel 620px; inputs 400px; heading "Crea tu cuenta" 30px Bold; gradiente `linear-gradient(60deg, rgba(255,138,101,1) 28%, rgba(239,82,38,1) 90%)`
+- [ ] T028 [P] Auditoría visual y funcional manual:
+  - **Fidelidad Figma** (SC-002): en 1440×1024 verificar Brand Panel con gradiente, Card Mockup visible, inputs 400×52px radius 12px, botón #FF6B3D
+  - **Above the fold** (SC-004, B-1): tras registro exitoso, el banner "Cuenta creada exitosamente..." debe ser visible en `/login` sin scroll en viewport 1440×1024
+  - **Responsive** (FR-015/FR-016): 375px → solo Form Panel; 1024px → Brand Panel aparece; 1440px → Brand Panel 620px
+  - **Navegación por teclado** (B-3, caso extremo spec): navegar con Tab por todos los campos y presionar Enter en "Crear cuenta" → verificar que se activan las validaciones inline correctamente y sin errores de consola
 
 - [ ] T029 [P] Revisar `PascalCase` en todos los archivos nuevos y modificados
 

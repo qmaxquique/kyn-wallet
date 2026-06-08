@@ -24,7 +24,7 @@ Implementar la pantalla de Registro de Usuarios en la ruta `/`, migrando el Logi
 - [x] **TDD**: Tests escritos antes del código en cada fase; runner: Vitest + RTL (patrón de `LoginForm.test.tsx` y `AuthService.test.ts`)
 - [x] **SOLID**: `RegisterForm` solo maneja UI; `AuthService.register()` encapsula lógica de dominio; `Validation.ts` centraliza reglas
 - [x] **Clean Architecture**: `app/` (rutas/entrada) → `components/` (UI) → `lib/services/` (casos de uso) → `lib/types/` (dominio)
-- [x] **DRY**: `BrandPanel`, `SocialLogins`, `Button`, `Input`, `validateEmail`, `validatePassword` reutilizados sin cambios
+- [x] **DRY**: `BrandPanel`, `Button`, `Input`, `validateEmail`, `validatePassword` reutilizados sin cambios; `SocialLogins` se modifica mínimamente (solo texto del alert, FR-006)
 - [x] **YAGNI**: No se crean abstracciones nuevas; se extienden solo las existentes
 - [x] **Naming**: `PascalCase` en todos los tipos e interfaces; camelCase en variables y funciones utilitarias
 - [x] **Dependencias**: Solo Next.js, React y Tailwind CSS; sin instalar paquetes nuevos
@@ -111,7 +111,7 @@ components/
 ├── BrandPanel.tsx               # SIN CAMBIOS (frame idéntico al Login)
 ├── RegisterForm.tsx             # CREAR: patrón de LoginForm.tsx; 4 campos + checkbox + SocialLogins
 ├── RegisterForm.test.tsx        # CREAR: patrón de LoginForm.test.tsx
-├── SocialLogins.tsx             # SIN CAMBIOS (alert "Próximamente" ya implementado)
+├── SocialLogins.tsx             # MODIFICAR: corregir texto del alert de `${provider} estará disponible próximamente.` a `'Próximamente'` (FR-006 exige texto exacto)
 └── ui/
     ├── Button.tsx               # SIN CAMBIOS
     └── Input.tsx                # SIN CAMBIOS
