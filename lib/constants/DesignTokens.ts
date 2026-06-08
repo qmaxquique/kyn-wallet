@@ -6,6 +6,9 @@ export const DesignTokens = {
     Neutral900: '#16182c',
     Neutral500: '#8a8ca8',
     Neutral300: '#d7d9e6',
+    AccentOrange: '#EF5226',
+    LabelColor: '#3D3F5C',
+    PlaceholderColor: '#A9ABC2',
   },
   BorderRadius: {
     Lg: '12px',

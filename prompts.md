@@ -113,3 +113,19 @@ Corrige los residuos encontrados
 ```
 
 
+### Implementación
+```
+/speckit.implement
+
+Implementa las tareas en orden, siguiendo TDD: escribir o actualizar tests antes del código de cada historia.
+
+Restricciones:
+- No instalar dependencias.
+- No romper el login existente.
+- Mantener /login funcional con el diseño actual.
+- Mostrar Registro en /.
+- Redirigir registro exitoso a /login con mensaje de éxito visible.
+- Usar el copy y layout del frame "04 · Registro": "Crea tu cuenta", "Completa tus datos para comenzar", "Comienza tu camino financiero", "Crear cuenta", "o regístrate con".
+- Validar inline y también al submit.
+- Al terminar, ejecutar npm run test -- --run y reportar resultados.
+```

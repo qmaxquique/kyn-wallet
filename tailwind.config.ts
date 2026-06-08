@@ -20,6 +20,11 @@ const config: Config = {
           500: DesignTokens.Colors.Neutral500,
           300: DesignTokens.Colors.Neutral300,
         },
+        accent: {
+          orange: DesignTokens.Colors.AccentOrange,
+        },
+        label: DesignTokens.Colors.LabelColor,
+        placeholder: DesignTokens.Colors.PlaceholderColor,
       },
       borderRadius: {
         lg: DesignTokens.BorderRadius.Lg,

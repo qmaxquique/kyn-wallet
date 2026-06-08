@@ -1,15 +1,19 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import LoginForm from '../components/LoginForm';
+import LoginPage from '../app/login/page';
 import { AuthService } from '../lib/services/AuthService';
 import React from 'react';
 
 // Mock the router
 const mockPush = vi.fn();
+const mockGetSearchParam = vi.fn();
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  useSearchParams: () => ({ get: mockGetSearchParam }),
 }));
 
 describe('LoginForm Integration', () => {
@@ -43,5 +47,21 @@ describe('LoginForm Integration', () => {
     await waitFor(() => {
       expect(screen.getByText(/Credenciales inválidas/i)).toBeInTheDocument();
     });
+  });
+});
+
+describe('LoginPage banner de éxito', () => {
+  it('muestra banner de éxito cuando searchParams registered=true', () => {
+    mockGetSearchParam.mockImplementation((key: string) => (key === 'registered' ? 'true' : null));
+    render(<LoginPage />);
+    expect(
+      screen.getByText('Cuenta creada exitosamente. Ahora puedes iniciar sesión.')
+    ).toBeInTheDocument();
+  });
+
+  it('NO muestra banner cuando no hay parámetro registered', () => {
+    mockGetSearchParam.mockReturnValue(null);
+    render(<LoginPage />);
+    expect(screen.queryByText(/cuenta creada/i)).not.toBeInTheDocument();
   });
 });
