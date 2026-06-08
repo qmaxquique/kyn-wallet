@@ -76,36 +76,53 @@ const RegisterForm: React.FC = () => {
     e.preventDefault();
     setSubmitError(null);
 
+    let hasError = false;
+
     if (!validateFullName(fullName)) {
       setFullNameError('Este campo es obligatorio');
-      return;
+      hasError = true;
+    } else {
+      setFullNameError(null);
     }
+
     if (!validateNotEmpty(email)) {
       setEmailError('Este campo es obligatorio');
-      return;
-    }
-    if (!validateEmail(email)) {
+      hasError = true;
+    } else if (!validateEmail(email)) {
       setEmailError('Ingresa un correo electrónico válido');
-      return;
+      hasError = true;
+    } else {
+      setEmailError(null);
     }
+
     if (!validateNotEmpty(password)) {
       setPasswordError('Este campo es obligatorio');
-      return;
-    }
-    if (!validatePassword(password)) {
+      hasError = true;
+    } else if (!validatePassword(password)) {
       setPasswordError('La contraseña debe tener al menos 8 caracteres');
-      return;
+      hasError = true;
+    } else {
+      setPasswordError(null);
     }
+
     if (!validateNotEmpty(confirmPassword)) {
       setConfirmPasswordError('Este campo es obligatorio');
-      return;
-    }
-    if (!validateConfirmPassword(password, confirmPassword)) {
+      hasError = true;
+    } else if (!validateConfirmPassword(password, confirmPassword)) {
       setConfirmPasswordError('Las contraseñas no coinciden');
-      return;
+      hasError = true;
+    } else {
+      setConfirmPasswordError(null);
     }
+
     if (!validateTerms(acceptsTerms)) {
       setTermsError('Debes aceptar los términos y condiciones');
+      hasError = true;
+    } else {
+      setTermsError(null);
+    }
+
+    if (hasError) {
       return;
     }
 
@@ -119,6 +136,8 @@ const RegisterForm: React.FC = () => {
 
     if (result.Success) {
       router.push('/login?registered=true');
+    } else if (result.ErrorMessage === 'Este correo ya está registrado') {
+      setEmailError(result.ErrorMessage);
     } else {
       setSubmitError(result.ErrorMessage || 'Error al registrarse');
     }

@@ -31,8 +31,10 @@ export const AuthService: IAuthService = {
     // Simulating API delay
     await new Promise((resolve) => setTimeout(resolve, 500));
 
+    const hashedPassword = simulateHash(credentials.Password);
     const user = MOCK_USERS.find(
-      (u) => u.Email === credentials.Email && u.Password === credentials.Password
+      (u) => u.Email === credentials.Email &&
+        (u.Password === credentials.Password || u.Password === hashedPassword)
     );
 
     if (user) {
@@ -52,6 +54,12 @@ export const AuthService: IAuthService = {
   },
 
   async register(credentials: RegisterCredentials): Promise<RegisterResult> {
+    if (!validateNotEmpty(credentials.Email)) {
+      return { Success: false, ErrorMessage: 'Este campo es obligatorio' };
+    }
+    if (!validateEmail(credentials.Email)) {
+      return { Success: false, ErrorMessage: 'Ingresa un correo electrónico válido' };
+    }
     if (this.isEmailTaken(credentials.Email)) {
       return { Success: false, ErrorMessage: 'Este correo ya está registrado' };
     }

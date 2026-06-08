@@ -39,7 +39,7 @@ describe('RegisterForm Integration', () => {
     });
   });
 
-  it('envío con correo duplicado muestra "Este correo ya está registrado"', async () => {
+  it('envío con correo duplicado muestra "Este correo ya está registrado" como error inline del email', async () => {
     vi.mocked(AuthService.register).mockResolvedValue({
       Success: false,
       ErrorMessage: 'Este correo ya está registrado',

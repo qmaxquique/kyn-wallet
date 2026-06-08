@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KynWallet - Iniciar sesión",
-  description: "Accede a tu billetera descentralizada",
+  title: "KynWallet",
+  description: "Tu billetera virtual, sin fronteras.",
 };
 
 export default function RootLayout({

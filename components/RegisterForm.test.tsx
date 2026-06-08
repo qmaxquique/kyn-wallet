@@ -100,6 +100,14 @@ describe('RegisterForm', () => {
     expect(AuthService.register).not.toHaveBeenCalled();
   });
 
+  it('submit con todos los campos vacíos muestra todos los errores inline', () => {
+    render(<RegisterForm />);
+    fireEvent.click(screen.getByRole('button', { name: /crear cuenta/i }));
+    const errors = screen.getAllByText('Este campo es obligatorio');
+    expect(errors.length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByText('Debes aceptar los términos y condiciones')).toBeInTheDocument();
+  });
+
   it('submit válido llama a AuthService.register con los datos correctos', async () => {
     vi.mocked(AuthService.register).mockResolvedValue({ Success: true });
 

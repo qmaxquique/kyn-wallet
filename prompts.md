@@ -129,3 +129,30 @@ Restricciones:
 - Validar inline y también al submit.
 - Al terminar, ejecutar npm run test -- --run y reportar resultados.
 ```
+
+### Revisión
+```
+Revisa visualmente localhost:3000 y localhost:3000/login contra Figma en desktop y mobile.
+```
+
+### Iteraciones
+```
+Corregí los hallazgos de revisión de la implementación de Registro.
+
+Objetivos:
+1. Hacer pasar npm run lint y npm run build sin agregar librerías de UI ni cambiar el alcance funcional.
+2. Corregir AuthService.register/login para que un usuario registrado pueda iniciar sesión después, sin almacenar contraseña en texto plano.
+3. Asegurar que AuthService.register valide email vacío/formato inválido según el contrato.
+4. Cambiar RegisterForm para que al submit muestre todos los errores inline aplicables, y que correo duplicado sea error inline del campo email.
+5. Ajustar BrandPanel o su uso en app/page.tsx para que Registro muestre “Comienza tu camino financiero.” y Login conserve su copy actual.
+6. Marcar tasks.md como completado solo para tareas realmente implementadas.
+7. Actualizar .specify/feature.json a specs/002-registro-enrique-conci y, si corresponde, dejar integración Copilot con script sh, no ps.
+8. Actualizar metadata de app/layout.tsx para que no diga solo “Iniciar sesión”.
+
+Después ejecutá:
+npm run test -- --run
+npm run lint
+npm run build
+
+```
+
