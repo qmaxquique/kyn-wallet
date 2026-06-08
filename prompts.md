@@ -53,3 +53,32 @@ Respetar la constitution:
 
 El plan debe contemplar RegisterForm, servicio de registro simulado, tipos de registro, validaciones reutilizables, ruta / para registro, ruta /login para el login existente y mensaje de éxito al volver desde registro.
 ```
+
+```
+/speckit.commit 
+```
+
+### Tasks
+El plan ya las habia generado, pero lo mismo las llamo con el comando de speckit.tasks
+
+```
+/speckit.tasks
+
+Genera o actualiza las tasks ejecutables y ordenadas por historias de usuario. Como el proyecto exige TDD, cada historia debe tener primero tareas de tests y después implementación.
+
+Incluí rutas y archivos exactos. Debe haber tareas para:
+- Tests unitarios de validaciones de registro.
+- Tests del servicio de registro.
+- Tests de RegisterForm: campos obligatorios, email inválido, password corta, confirmación distinta, términos no aceptados, éxito, social alerts y link a /login.
+- Implementación de RegisterForm.
+- Servicio y tipos de registro.
+- Ajuste de rutas / y /login.
+- Mensaje de éxito en login.
+- Auditoría responsive y visual contra Figma.
+- Ejecutar npm run test -- --run.
+```
+
+```
+/speckit.commit 
+```
+

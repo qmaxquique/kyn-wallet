@@ -3,155 +3,366 @@
 **Entrada**: Documentos de diseño de `/specs/002-registro-enrique-conci/`
 **Prerrequisitos**: plan.md (requerido), spec.md (requerido para historias de usuario), research.md, data-model.md, contracts/
 
-## Formato: `[ID] [P?] [HU?] Descripción`
+## Convenciones
 
-- **[P]**: Puede ejecutarse en paralelo (archivos distintos, sin dependencias)
-- **[HU]**: Historia de usuario a la que pertenece la tarea (HU1–HU4)
-- Incluir rutas de archivo exactas y nombres de funciones/tipos concretos
+- **[P]**: Puede ejecutarse en paralelo (archivos distintos, sin dependencias entre sí)
+- **[HU]**: Historia de usuario a la que pertenece (HU1–HU4)
+- Cada tarea de test se escribe y hace pasar **antes** de la implementación correspondiente (TDD)
+- Rutas y nombres de funciones son exactos y coinciden con el codebase real
 
----
+## Advertencia de discrepancia detectada
 
-## Fase 1: Preparación — Dominio y Tokens
-
-**Objetivo**: Extender el dominio y los tokens antes de cualquier UI. Ninguna tarea aquí rompe tests existentes.
-
-- [ ] T001 Extender `lib/types/Auth.ts`: añadir interfaces `RegisterCredentials`, `RegisterResult` y `ValidationError`; añadir campo `FullName: string` a la interfaz `User` existente. `AuthCredentials` no se modifica.
-- [ ] T002 [P] Extender `lib/constants/DesignTokens.ts`: añadir dentro de `Colors{}` los tokens `AccentOrange: '#EF5226'`, `LabelColor: '#3D3F5C'` y `PlaceholderColor: '#A9ABC2'`. La estructura `DesignTokens` no se modifica en ninguna otra parte.
-- [ ] T003 [P] Verificar que `tailwind.config.ts` ya expone los colores de `DesignTokens.Colors` y que los nuevos tokens quedan disponibles como clases de Tailwind (`text-accent-orange`, etc.).
+> **SocialLogins.tsx** usa `alert(\`${provider} estará disponible próximamente.\`)`.
+> La spec (FR-006) exige el texto exacto `"Próximamente"`. La tarea T023 corrige esto.
 
 ---
 
-## Fase 2: Migración de Ruta — Prerrequisito Bloqueante
+## Fase 1 — Dominio y Tokens (base compartida)
 
-**Objetivo**: Liberar `/` para el Registro y mover el Login existente a `/login`. Los tests actuales deben mantenerse verdes.
+**Objetivo**: Tipos, interfaces y tokens listos antes de cualquier test o componente. Ninguna tarea aquí rompe tests existentes.
 
-- [ ] T004 Crear `app/login/page.tsx`: contenido idéntico al `app/page.tsx` actual (importa `BrandPanel` y `LoginForm`). Convertir a `'use client'` y añadir `useSearchParams()` para leer el parámetro `registered`. Si `registered === 'true'`, renderizar encima del formulario un `<div>` con el mensaje "Cuenta creada exitosamente. Ahora puedes iniciar sesión." con fondo verde claro (`bg-green-50`, borde `border-green-200`, texto `text-green-800`).
-- [ ] T005 [P] Revisar `components/LoginForm.tsx`: verificar que no hay referencias hardcodeadas a la ruta `/` en navegaciones internas. No se espera ningún cambio — solo confirmación.
-- [ ] T006 [P] Actualizar `app/login.test.tsx`: el archivo actualmente renderiza `LoginForm` directamente. Como la migración no cambia `LoginForm` sino solo la ruta que lo contiene, verificar que los tests siguen verdes sin cambios. Si algún test depende de `app/page.tsx` como entrada, actualizar el import a `app/login/page.tsx`.
+- [ ] T001 Extender `lib/types/Auth.ts`:
+  - Añadir `FullName: string` a la interfaz `User` existente
+  - Añadir interfaz `RegisterCredentials { FullName: string; Email: string; Password: string; ConfirmPassword: string; AcceptsTerms: boolean }`
+  - Añadir interfaz `RegisterResult { Success: boolean; ErrorMessage?: string }`
+  - Añadir interfaz `ValidationError { Field: string; Message: string }`
+  - `AuthCredentials` no se toca
+
+- [ ] T002 [P] Extender `lib/constants/DesignTokens.ts`: dentro de `Colors{}` añadir:
+  - `AccentOrange: '#EF5226'`
+  - `LabelColor: '#3D3F5C'`
+  - `PlaceholderColor: '#A9ABC2'`
+
+- [ ] T003 [P] Confirmar que `tailwind.config.ts` expone todos los colores de `DesignTokens.Colors`. Si los nuevos tokens no generan clases utilitarias, extender la sección `theme.extend.colors` con sus valores.
 
 ---
 
-## Fase 3: HU1 — Registro Exitoso (P1) 🎯 MVP
+## Fase 2 — Migración de rutas `/` y `/login`
 
-**Objetivo**: Flujo completo: formulario válido → `AuthService.register()` → `router.push('/login?registered=true')` → banner visible en `/login`.
+**Objetivo**: Crear `app/login/page.tsx` con el Login y el banner de éxito; `app/page.tsx` queda libre para el Registro. Tests actuales del login deben seguir verdes.
 
-**Prueba independiente**: Llenar los 4 campos con datos válidos, marcar checkbox, click en "Crear cuenta" → verificar `router.push` llamado con `/login?registered=true`.
+- [ ] T004 Crear `app/login/page.tsx` (`'use client'`):
+  - Importar `BrandPanel`, `LoginForm` y `useSearchParams` de `next/navigation`
+  - Leer `const registered = searchParams.get('registered')`
+  - Si `registered === 'true'`, renderizar antes del formulario:
+    ```
+    <div className="mb-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm">
+      Cuenta creada exitosamente. Ahora puedes iniciar sesión.
+    </div>
+    ```
+  - El resto del layout es idéntico al `app/page.tsx` actual (`BrandPanel` izquierda + Form Panel derecha)
 
-### Tests — Escribir ANTES de implementar ⚠️
+- [ ] T005 [P] Verificar `components/LoginForm.tsx`: no debe tener referencias hardcodeadas a `'/'` en ningún `router.push`. Si las hay, cambiarlas a `'/login'`.
 
-- [ ] T007 [P] [HU1] Añadir `describe('register', ...)` en `lib/services/AuthService.test.ts`:
-  - `register()` con datos válidos retorna `{ Success: true }` y el nuevo usuario aparece en `MOCK_USERS`
-  - `register()` con correo duplicado (`tucorreo@ejemplo.com`) retorna `{ Success: false, ErrorMessage: 'Este correo ya está registrado' }`
-  - `isEmailTaken('tucorreo@ejemplo.com')` retorna `true`
-  - `isEmailTaken('nuevo@ejemplo.com')` retorna `false`
+- [ ] T006 [P] Verificar `app/login.test.tsx`: los tests importan `LoginForm` directamente, no `app/page.tsx`, por lo que no requieren cambios. Ejecutar `npm run test -- --run app/login.test.tsx` y confirmar que pasan en verde antes de continuar.
+
+---
+
+## Fase 3 — HU1: Registro Exitoso 🎯 MVP
+
+**Objetivo**: Flujo completo. Formulario válido → `AuthService.register()` → `router.push('/login?registered=true')` → banner visible.
+
+### Tests unitarios del servicio de registro ⚠️ PRIMERO
+
+- [ ] T007 [HU1] Añadir `describe('register')` en `lib/services/AuthService.test.ts`:
+
+  ```
+  describe('register', () => {
+    it('registro exitoso retorna { Success: true }')
+      → register({ FullName:'Diego', Email:'nuevo@ejemplo.com', Password:'Abc12345',
+                   ConfirmPassword:'Abc12345', AcceptsTerms:true })
+      → expect(result).toEqual({ Success: true })
+
+    it('usuario registrado aparece en MOCK_USERS')
+      → después del register exitoso, isEmailTaken('nuevo@ejemplo.com') === true
+
+    it('correo duplicado retorna { Success: false, ErrorMessage: "Este correo ya está registrado" }')
+      → register con Email: 'tucorreo@ejemplo.com' (ya existe en MOCK_USERS)
+
+    it('isEmailTaken con correo existente retorna true')
+      → isEmailTaken('tucorreo@ejemplo.com') === true
+
+    it('isEmailTaken con correo nuevo retorna false')
+      → isEmailTaken('nadie@ejemplo.com') === false
+  })
+  ```
+
+### Tests de integración del flujo de registro ⚠️ PRIMERO
 
 - [ ] T008 [P] [HU1] Crear `app/register.test.tsx` (patrón de `app/login.test.tsx`):
-  - Mock de `next/navigation` con `mockPush = vi.fn()`
-  - "envío con datos válidos llama a `router.push('/login?registered=true')`"
-  - "envío con correo duplicado muestra error inline 'Este correo ya está registrado'"
 
-### Implementación
+  ```
+  const mockPush = vi.fn()
+  vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
+
+  it('envío válido llama a router.push con "/login?registered=true"')
+    → render(<RegisterForm />)
+    → llenar FullName, Email, Password, ConfirmPassword con valores válidos
+    → marcar checkbox AcceptsTerms
+    → fireEvent.click(getByRole('button', { name: /crear cuenta/i }))
+    → await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/login?registered=true'))
+
+  it('envío con correo duplicado muestra "Este correo ya está registrado"')
+    → rellenar con Email: 'tucorreo@ejemplo.com'
+    → esperar mensaje de error inline en el campo correo
+  ```
+
+### Implementación HU1
 
 - [ ] T009 [HU1] Extender `lib/services/AuthService.ts`:
-  - Añadir función privada `simulateHash(password: string): string` → `btoa(password)`
-  - Añadir `isEmailTaken(email: string): boolean` a `IAuthService` y a `AuthService`
-  - Añadir `register(credentials: RegisterCredentials): Promise<RegisterResult>` a `IAuthService` y a `AuthService` con la lógica del contrato (`contracts/register-service.md`)
-  - El campo `Password` en `MOCK_USERS` pasa a llamarse `PasswordHash` en los usuarios registrados vía `register()`; el usuario hardcodeado existente mantiene su estructura para no romper `AuthService.login()`
+  - Añadir función local `const simulateHash = (p: string): string => btoa(p)`
+  - Añadir a `IAuthService`: `isEmailTaken(email: string): boolean` y `register(credentials: RegisterCredentials): Promise<RegisterResult>`
+  - Implementar `isEmailTaken`: busca en `MOCK_USERS` por `Email` (case-insensitive: `.toLowerCase()`)
+  - Implementar `register` con la secuencia del contrato (`contracts/register-service.md`): validar duplicado → validar password → validar confirmación → validar nombre → validar términos → push `{ FullName, Email, Password: simulateHash(Password) }` → retornar `{ Success: true }`
 
 - [ ] T010 [HU1] Crear `components/RegisterForm.tsx` (`'use client'`):
-  - Estado: `fullName`, `email`, `password`, `confirmPassword`, `acceptsTerms` (string/boolean)
-  - Errores: `fullNameError`, `emailError`, `passwordError`, `confirmPasswordError`, `termsError`, `submitError` (todos `string | null`)
-  - `handleSubmit`: valida todos los campos, llama `AuthService.register()`, en éxito hace `router.push('/login?registered=true')`
-  - JSX: 4 componentes `<Input>` + checkbox nativo + `<Button variant="primary">Crear cuenta</Button>`
-  - No incluye aún estilos de Figma (los tokens se aplican en T018-T019)
+  - `import { useRouter } from 'next/navigation'`
+  - `import { Input } from './ui/Input'` y `import { Button } from './ui/Button'`
+  - `import { AuthService } from '../lib/services/AuthService'`
+  - `import { validateEmail, validatePassword } from '../lib/utils/Validation'`
+  - Estado: `fullName`, `email`, `password`, `confirmPassword` (`string`, init `''`); `acceptsTerms` (`boolean`, init `false`)
+  - Errores: `fullNameError`, `emailError`, `passwordError`, `confirmPasswordError`, `termsError`, `submitError` (`string | null`, init `null`)
+  - `handleSubmit(e)`: previene default, valida todos los campos en orden, si alguno falla setea error y `return`, llama `AuthService.register()`, si `Success` → `router.push('/login?registered=true')`, si `!Success` → `setSubmitError(result.ErrorMessage)`
+  - JSX mínimo funcional: `<form>` con 4 `<Input>`, checkbox + label, `<Button>Crear cuenta</Button>` y mensaje de `submitError`
 
-- [ ] T011 [HU1] Modificar `app/page.tsx`: reemplazar `import LoginForm` por `import RegisterForm`; el resto del layout (`BrandPanel` + div contenedor) permanece idéntico.
+- [ ] T011 [HU1] Modificar `app/page.tsx`:
+  - Reemplazar `import LoginForm from '@/components/LoginForm'` por `import RegisterForm from '@/components/RegisterForm'`
+  - Reemplazar `<LoginForm />` por `<RegisterForm />`
+  - El layout con `BrandPanel` permanece idéntico
 
 ---
 
-## Fase 4: HU2 — Validaciones Inline (P2)
+## Fase 4 — HU2: Validaciones Inline
 
-**Objetivo**: Cada campo muestra su error en `onBlur`; el submit queda bloqueado si hay errores.
+**Objetivo**: Cada campo dispara su validación en `onBlur`; submit rechaza el envío si alguna falla.
 
-**Prueba independiente**: Ingresar `"nodomain"` en el campo correo, hacer `fireEvent.blur` → verificar texto "Ingresa un correo electrónico válido" en el DOM en ≤300ms.
+### Tests unitarios de validaciones ⚠️ PRIMERO
 
-### Tests — Escribir ANTES de implementar ⚠️
+- [ ] T013 [HU2] Añadir en `lib/utils/Validation.test.ts` los siguientes `describe`:
 
-- [ ] T013 [P] [HU2] Añadir `describe('validateFullName')`, `describe('validateNotEmpty')`, `describe('validateConfirmPassword')` y `describe('validateTerms')` en `lib/utils/Validation.test.ts` (patrón de los `describe` existentes):
-  - `validateFullName('')` → `false`; `validateFullName('   ')` → `false`; `validateFullName('Diego')` → `true`
-  - `validateConfirmPassword('Abc12345', 'Abc12345')` → `true`; `('Abc12345', 'distinto')` → `false`
-  - `validateTerms(false)` → `false`; `validateTerms(true)` → `true`
+  ```
+  describe('validateNotEmpty', () => {
+    it('string vacío → false')         → validateNotEmpty('') === false
+    it('solo espacios → false')        → validateNotEmpty('   ') === false
+    it('string con contenido → true')  → validateNotEmpty('Diego') === true
+  })
+
+  describe('validateFullName', () => {
+    it('nombre vacío → false')         → validateFullName('') === false
+    it('solo espacios → false')        → validateFullName('   ') === false
+    it('nombre válido → true')         → validateFullName('Diego Martínez') === true
+  })
+
+  describe('validateConfirmPassword', () => {
+    it('passwords iguales → true')     → validateConfirmPassword('Abc12345','Abc12345') === true
+    it('passwords distintas → false')  → validateConfirmPassword('Abc12345','distinto') === false
+    it('segundo vacío → false')        → validateConfirmPassword('Abc12345','') === false
+  })
+
+  describe('validateTerms', () => {
+    it('false → false')                → validateTerms(false) === false
+    it('true → true')                  → validateTerms(true) === true
+  })
+  ```
+
+### Tests de UI del RegisterForm ⚠️ PRIMERO
 
 - [ ] T014 [HU2] Crear `components/RegisterForm.test.tsx` (patrón de `components/LoginForm.test.tsx`):
-  - Mock de `next/navigation` con `useRouter: () => ({ push: vi.fn() })`
-  - "campo 'Nombre completo' vacío tras blur muestra 'Este campo es obligatorio'"
-  - "correo inválido tras blur muestra 'Ingresa un correo electrónico válido'"
-  - "contraseña < 8 chars tras blur muestra 'La contraseña debe tener al menos 8 caracteres'"
-  - "contraseñas distintas tras blur en confirmar muestra 'Las contraseñas no coinciden'"
-  - "checkbox no marcado en submit muestra 'Debes aceptar los términos y condiciones'"
-  - "botón 'Crear cuenta' no llama a `register()` si alguna validación falla"
+
+  Setup común:
+  ```
+  vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+  vi.mock('../lib/services/AuthService', () => ({
+    AuthService: { register: vi.fn(), isEmailTaken: vi.fn().mockReturnValue(false) }
+  }))
+  ```
+
+  Tests de campos obligatorios:
+  ```
+  it('nombre vacío: blur → "Este campo es obligatorio"')
+    → render(<RegisterForm />)
+    → fireEvent.blur(getByLabelText(/nombre completo/i))
+    → expect(getByText('Este campo es obligatorio')).toBeInTheDocument()
+
+  it('email inválido: blur → "Ingresa un correo electrónico válido"')
+    → fireEvent.change(emailInput, { target: { value: 'nodomain' } })
+    → fireEvent.blur(emailInput)
+    → expect(getByText('Ingresa un correo electrónico válido')).toBeInTheDocument()
+
+  it('password < 8 chars: blur → "La contraseña debe tener al menos 8 caracteres"')
+    → fireEvent.change(passInput, { target: { value: 'short' } })
+    → fireEvent.blur(passInput)
+    → expect(getByText('La contraseña debe tener al menos 8 caracteres')).toBeInTheDocument()
+
+  it('confirmación distinta: blur → "Las contraseñas no coinciden"')
+    → password = 'Abc12345', confirmPassword = 'diferente'
+    → fireEvent.blur(confirmInput)
+    → expect(getByText('Las contraseñas no coinciden')).toBeInTheDocument()
+
+  it('términos no aceptados en submit → "Debes aceptar los términos y condiciones"')
+    → rellenar campos válidos, NO marcar checkbox
+    → fireEvent.click(submitButton)
+    → expect(getByText('Debes aceptar los términos y condiciones')).toBeInTheDocument()
+
+  it('submit con errores NO llama a AuthService.register')
+    → submit sin nombre
+    → expect(AuthService.register).not.toHaveBeenCalled()
+
+  it('submit válido llama a AuthService.register con los datos correctos')
+    → AuthService.register.mockResolvedValue({ Success: true })
+    → rellenar todos los campos válidos + checkbox
+    → fireEvent.click(submitButton)
+    → expect(AuthService.register).toHaveBeenCalledWith({
+        FullName: 'Diego Martínez', Email: 'test@ejemplo.com',
+        Password: 'Abc12345', ConfirmPassword: 'Abc12345', AcceptsTerms: true
+      })
+  ```
+
+### Implementación HU2
+
+- [ ] T015 [P] [HU2] Extender `lib/utils/Validation.ts`:
+  ```
+  export const validateNotEmpty = (value: string): boolean => value.trim() !== '';
+  export const validateFullName = (name: string): boolean => validateNotEmpty(name);
+  export const validateConfirmPassword = (password: string, confirm: string): boolean => password === confirm;
+  export const validateTerms = (accepted: boolean): boolean => accepted === true;
+  ```
+
+- [ ] T016 [HU2] Actualizar `components/RegisterForm.tsx`: añadir `onBlur` a cada `<Input>`:
+  - `fullName` onBlur → `validateFullName(fullName)` → si false: `setFullNameError('Este campo es obligatorio')`
+  - `email` onBlur → `validateEmail(email)` → si false: `setEmailError('Ingresa un correo electrónico válido')`
+  - `password` onBlur → `validatePassword(password)` → si false: `setPasswordError('La contraseña debe tener al menos 8 caracteres')`
+  - `confirmPassword` onBlur → `validateConfirmPassword(password, confirmPassword)` → si false: `setConfirmPasswordError('Las contraseñas no coinciden')`
+
+- [ ] T017 [HU2] Actualizar `handleSubmit` en `components/RegisterForm.tsx`:
+  - Ejecutar todas las validaciones en orden antes de llamar a `register()`
+  - Si `!validateFullName(fullName)` → `setFullNameError('Este campo es obligatorio'); return`
+  - Si `!validateEmail(email)` → `setEmailError('Ingresa un correo electrónico válido'); return`
+  - Si `!validatePassword(password)` → `setPasswordError('La contraseña debe tener al menos 8 caracteres'); return`
+  - Si `!validateConfirmPassword(password, confirmPassword)` → `setConfirmPasswordError('Las contraseñas no coinciden'); return`
+  - Si `!validateTerms(acceptsTerms)` → `setTermsError('Debes aceptar los términos y condiciones'); return`
+  - Solo si todas pasan → llamar `AuthService.register()`
+
+---
+
+## Fase 5 — HU3: Fidelidad Visual Figma
+
+**Objetivo**: Aplicar tokens exactos del frame "04 · Registro". Sin tests nuevos — verificación visual.
+
+- [ ] T018 [P] [HU3] Aplicar estilos de inputs y botón en `components/RegisterForm.tsx`:
+  - Cada `<Input>` debe recibir `className` con altura 52px (`h-[52px]`), radius 12px (`rounded-xl`), borde 1.5px `#D7D9E6` (`border-[1.5px] border-[#D7D9E6]`). Verificar que `Input.tsx` no sobreescribe estos valores; si lo hace, extender la prop `className`.
+  - `<Button variant="primary">` debe tener altura 52px (`h-[52px]`, pasar `className="h-[52px]"`). El color `#FF6B3D` ya viene de `bg-brand-primary`.
+
+- [ ] T019 [P] [HU3] Aplicar tipografía en `components/RegisterForm.tsx`:
+  - Heading: `<h1 className="text-[30px] font-bold text-[#16182C]">Crea tu cuenta</h1>`
+  - Subheading: `<p className="text-[16px] font-normal text-[#8A8BA8]">Completa tus datos para comenzar</p>`
+  - Labels de `<Input>`: `className="text-[14px] font-medium text-[#3D3F5C]"` vía prop `label` o `className` del componente
+
+- [ ] T020 [HU3] Auditoría responsive en `app/page.tsx`:
+  - Verificar que `<BrandPanel />` está dentro de un contenedor con clase `hidden lg:block` o `hidden lg:flex`
+  - En <1024px el Form Panel ocupa el 100% del ancho (`w-full`)
+  - Probar visualmente en 375px (mobile) y 1440px (desktop referencia)
+
+- [ ] T021 [P] [HU3] Toggle de visibilidad de contraseña en `components/RegisterForm.tsx`:
+  - Añadir `const [showPassword, setShowPassword] = useState(false)` y `const [showConfirmPassword, setShowConfirmPassword] = useState(false)`
+  - Pasar `type={showPassword ? 'text' : 'password'}` al `<Input>` de contraseña
+  - Añadir `<button type="button" aria-label="Mostrar contraseña" onClick={() => setShowPassword(v => !v)}>` posicionado con `absolute right-4 top-1/2 -translate-y-1/2` dentro de un `<div className="relative">`
+
+---
+
+## Fase 6 — HU4: Botones Sociales y Navegación Secundaria
+
+**Objetivo**: `SocialLogins` con alert exacto `"Próximamente"` y link footer a `/login`.
+
+### Tests ⚠️ PRIMERO
+
+- [ ] T022 [HU4] Añadir en `components/RegisterForm.test.tsx`:
+
+  ```
+  it('click en "Google" dispara alert con texto exacto "Próximamente"')
+    → vi.spyOn(window, 'alert').mockImplementation(() => {})
+    → render(<RegisterForm />)
+    → fireEvent.click(getByRole('button', { name: /google/i }))
+    → expect(window.alert).toHaveBeenCalledWith('Próximamente')
+
+  it('click en "Apple" dispara alert con texto exacto "Próximamente"')
+    → fireEvent.click(getByRole('button', { name: /apple/i }))
+    → expect(window.alert).toHaveBeenCalledWith('Próximamente')
+
+  it('link "Inicia sesión" apunta a /login')
+    → expect(getByRole('link', { name: /inicia sesión/i })).toHaveAttribute('href', '/login')
+  ```
+
+### Implementación HU4
+
+- [ ] T023 [HU4] Corregir `components/SocialLogins.tsx`: cambiar el texto del alert de `` `${provider} estará disponible próximamente.` `` a `'Próximamente'`:
+  ```
+  const handleComingSoon = () => {
+    alert('Próximamente');
+  };
+  ```
+
+- [ ] T024 [HU4] Completar `components/RegisterForm.tsx`:
+  - Añadir `import SocialLogins from './SocialLogins'` y `import Link from 'next/link'`
+  - Añadir divisor entre el botón y los botones sociales:
+    ```
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-px bg-[#D7D9E6]" />
+      <span className="text-[13px] text-[#8A8BA8]">o regístrate con</span>
+      <div className="flex-1 h-px bg-[#D7D9E6]" />
+    </div>
+    <SocialLogins />
+    ```
+  - Añadir footer:
+    ```
+    <p className="text-center text-[14px] text-[#8A8BA8]">
+      ¿Ya tienes cuenta?{' '}
+      <Link href="/login" className="font-semibold text-[#EF5226]">Inicia sesión</Link>
+    </p>
+    ```
+
+---
+
+## Fase 7 — Mensaje de éxito en Login
+
+**Objetivo**: Verificar que el banner de éxito en `/login` se muestra cuando llega el parámetro `?registered=true`.
+
+### Test ⚠️ PRIMERO
+
+- [ ] T025 [HU1] Añadir en `app/login.test.tsx`:
+
+  ```
+  it('muestra banner de éxito cuando searchParams registered=true')
+    → vi.mock('next/navigation', () => ({
+        useRouter: () => ({ push: mockPush }),
+        useSearchParams: () => ({ get: (key) => key === 'registered' ? 'true' : null })
+      }))
+    → render(<LoginPage />)
+    → expect(getByText('Cuenta creada exitosamente. Ahora puedes iniciar sesión.')).toBeInTheDocument()
+
+  it('NO muestra banner cuando no hay parámetro registered')
+    → useSearchParams: () => ({ get: () => null })
+    → expect(queryByText(/cuenta creada/i)).not.toBeInTheDocument()
+  ```
 
 ### Implementación
 
-- [ ] T015 [P] [HU2] Extender `lib/utils/Validation.ts` añadiendo:
-  - `validateNotEmpty(value: string): boolean` → `value.trim() !== ''`
-  - `validateFullName(name: string): boolean` → delega a `validateNotEmpty`
-  - `validateConfirmPassword(password: string, confirm: string): boolean` → `password === confirm`
-  - `validateTerms(accepted: boolean): boolean` → `accepted === true`
-
-- [ ] T016 [HU2] Actualizar `components/RegisterForm.tsx`: añadir handlers `onBlur` por campo que invocan las funciones de `Validation.ts` y actualizan los estados de error correspondientes. Los mensajes de error se pasan como prop `error` a `<Input>` (ya soportado por el componente).
-
-- [ ] T017 [HU2] Actualizar `handleSubmit` en `components/RegisterForm.tsx`: ejecutar validación completa de todos los campos; si alguna falla, setear el error y hacer `return` sin llamar a `AuthService.register()`.
+- [ ] T026 [HU1] Verificar `app/login/page.tsx` (creado en T004): que el banner de éxito usa el selector correcto para los tests anteriores. No debe añadir lógica nueva — solo confirmar que el test pasa.
 
 ---
 
-## Fase 5: HU3 — Fidelidad Visual Figma (P3)
+## Fase 8 — Auditoría Final y Cierre
 
-**Objetivo**: Aplicar tokens de diseño exactos del frame "04 · Registro" al `RegisterForm`.
+- [ ] T027 [P] Ejecutar suite completa: `npm run test -- --run`
+  - Archivos esperados en verde: `AuthService.test.ts`, `Validation.test.ts`, `LoginForm.test.tsx`, `login.test.tsx`, `RegisterForm.test.tsx`, `register.test.tsx`
+  - Tasa de éxito requerida: 100%
 
-**Prueba independiente**: Inspección visual en 1440×1024 — Brand Panel con gradiente, inputs con borde `#D7D9E6` y radius 12px, botón con fondo `#FF6B3D`.
+- [ ] T028 [P] Auditoría visual contra Figma frame `31:2` en 3 viewports:
+  - **375px (mobile)**: solo Form Panel visible; Brand Panel ausente del layout
+  - **1024px (breakpoint)**: Brand Panel aparece; Form Panel al 50%
+  - **1440px (desktop referencia)**: Brand Panel 620px; inputs 400px; heading "Crea tu cuenta" 30px Bold; gradiente `linear-gradient(60deg, rgba(255,138,101,1) 28%, rgba(239,82,38,1) 90%)`
 
-- [ ] T018 [P] [HU3] Aplicar en `components/RegisterForm.tsx` los estilos de los campos:
-  - Labels: `text-sm font-medium` con color `text-[#3D3F5C]` (o clase Tailwind del token `LabelColor`)
-  - Inputs: clases que resulten en 400px de ancho, 52px de alto, radius 12px, borde 1.5px `#D7D9E6` — verificar que `Input.tsx` ya aplica `border-neutral-300 rounded-lg`; ajustar solo si los valores difieren
-  - Botón: `<Button variant="primary">` ya usa `bg-brand-primary` (`#FF6B3D`); verificar height 52px y radius 12px
+- [ ] T029 [P] Revisar `PascalCase` en todos los archivos nuevos y modificados
 
-- [ ] T019 [P] [HU3] Aplicar tipografía en `components/RegisterForm.tsx`:
-  - Heading "Crea tu cuenta": `text-[30px] font-bold text-[#16182C]`
-  - Subheading: `text-[16px] font-normal text-[#8A8BA8]`
-  - Labels: `text-[14px] font-medium text-[#3D3F5C]`
+- [ ] T030 Commit y push: `git add -A && git commit -m "feat: implement Registro de Usuarios — routes / and /login"`
 
-- [ ] T020 [HU3] Verificar comportamiento responsive en `app/page.tsx`: el `BrandPanel` ya usa `hidden lg:block` (o equivalente); confirmar que en <1024px solo el Form Panel es visible. Ajustar clases si es necesario.
-
-- [ ] T021 [P] [HU3] Añadir toggle de visibilidad de contraseña en `components/RegisterForm.tsx`: estado booleano `showPassword` y `showConfirmPassword`; cambiar `type` del `<Input>` entre `"password"` y `"text"` según el estado; botón de toggle como `<button type="button">` con `aria-label`.
-
----
-
-## Fase 6: HU4 — Botones Sociales y Navegación Secundaria (P4)
-
-**Objetivo**: `SocialLogins` con divisor "o regístrate con" y enlace footer a `/login`.
-
-**Prueba independiente**: `fireEvent.click` en "Google" → `expect(window.alert).toHaveBeenCalledWith('Próximamente')`; click en "Inicia sesión" → `expect(mockPush).toHaveBeenCalledWith('/login')`.
-
-- [ ] T022 [P] [HU4] Incluir `<SocialLogins />` en `components/RegisterForm.tsx` debajo del botón "Crear cuenta", con el divisor "o regístrate con":
-  - Divisor: `<div className="flex items-center gap-4"><div className="flex-1 h-px bg-[#D7D9E6]"/><span className="text-[13px] text-[#8A8BA8]">o regístrate con</span><div className="flex-1 h-px bg-[#D7D9E6]"/></div>`
-
-- [ ] T023 [HU4] Verificar `components/SocialLogins.tsx`: confirmar que los botones Google y Apple disparan `alert('Próximamente')` sin modificaciones. Si el texto actual del alert es distinto, actualizar únicamente ese string.
-
-- [ ] T024 [HU4] Añadir footer en `components/RegisterForm.tsx`:
-  ```
-  <p className="text-center text-[14px] text-[#8A8BA8]">
-    ¿Ya tienes cuenta?{' '}
-    <Link href="/login" className="font-semibold text-[#EF5226]">Inicia sesión</Link>
-  </p>
-  ```
-  Usar `import Link from 'next/link'` (navegación del lado del cliente, sin recarga).
-
----
-
-## Fase 7: Pulido y Cierre
-
-- [ ] T025 [P] Ejecutar `npm run test` — todos los tests deben pasar al 100%: `AuthService.test.ts`, `Validation.test.ts`, `LoginForm.test.tsx`, `login.test.tsx`, `RegisterForm.test.tsx`, `register.test.tsx`
-- [ ] T026 [P] Verificar responsive manualmente en viewports 375px, 768px, 1024px y 1440px
-- [ ] T027 [P] Revisar `PascalCase` en todos los archivos nuevos y modificados
-- [ ] T028 Hacer commit con mensaje: `feat: implement Registro de Usuarios — routes / and /login`
