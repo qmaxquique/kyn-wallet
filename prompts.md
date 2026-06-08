@@ -134,7 +134,7 @@ Restricciones:
 
 #### Revisión 1
 ```
-Revisa la implementación general. el código contra las specs. Corre los tests y provee un reporte de estado.
+Revisa la implementación general y a nivel código vs specs. Corre los tests y provee un reporte de estado.
 ```
 
 #### Iteración 1
