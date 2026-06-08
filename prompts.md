@@ -82,3 +82,34 @@ Incluí rutas y archivos exactos. Debe haber tareas para:
 /speckit.commit 
 ```
 
+### Análisis
+```
+/speckit.analyze
+
+Haz un análisis read-only de consistencia entre spec.md, plan.md y tasks.md. Reportá brechas de cobertura, conflictos con la constitution o requisitos sin tasks. No modifiques archivos en este paso.
+```
+
+### Correccion de desviaciones
+```
+Toma el reporte de /speckit.analyze y corrige las desviaciones encontradas
+
+Reglas:
+- No cambies el alcance funcional aprobado.
+- No agregues nuevas features.
+- No modifiques código si la desviación es solo documental.
+- Si una corrección requiere código, primero actualiza/crea tests según la constitution.
+- Manten la feature en la rama feature/enrique-daniel-conci.
+- Preserva / como Registro y /login como Login.
+- Al final ejecuta npm run test -- --run, npm run lint y npm run build.
+```
+
+### Analisis y correcciones adicionales
+
+```
+/speckit.analyze
+```
+```
+Corrige los residuos encontrados
+```
+
+
